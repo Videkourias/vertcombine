@@ -1,6 +1,27 @@
 import numpy as np
 import PIL, os
 from PIL import Image
+import enum
+
+
+# Enum for size units
+class SIZE_UNIT(enum.Enum):
+    BYTES = 1
+    KB = 2
+    MB = 3
+    GB = 4
+
+
+def convert_unit(size_in_bytes, unit):
+    if unit == SIZE_UNIT.KB:
+        return size_in_bytes / 1024
+    elif unit == SIZE_UNIT.MB:
+        return size_in_bytes / (1024 * 1024)
+    elif unit == SIZE_UNIT.GB:
+        return size_in_bytes / (1024 * 1024 * 1024)
+    else:
+        return size_in_bytes
+
 
 images = []  # Paths to image files
 
@@ -17,14 +38,20 @@ def getImages(directory):
 def combineImages(name, method='v'):
     imgs = [PIL.Image.open(i) for i in images]
 
+
+    for i in range(len(imgs)):
+        imgs[i] = imgs[i].convert('L')
+
+
+
     # Find image with smallest size and resize others to match it
     min_shape = sorted([(np.sum(i.size), i.size) for i in imgs])[0][1]
-    imgs_comb = np.hstack((np.asarray(i.resize(min_shape)) for i in imgs))
 
     m = method.lower()
 
     # Create image horizontal
     if 'h' in m:
+        imgs_comb = np.hstack((np.asarray(i.resize(min_shape)) for i in imgs))
         imgs_comb = PIL.Image.fromarray(imgs_comb)
         imgs_comb.save('Complete/' + name + '.jpg')
 
@@ -32,17 +59,30 @@ def combineImages(name, method='v'):
     if 'v' in m:
         imgs_comb = np.vstack((np.asarray(i.resize(min_shape)) for i in imgs))
         imgs_comb = PIL.Image.fromarray(imgs_comb)
-        imgs_comb.save('Complete/' + name + '_vertical.jpg')
+        try:
+            imgs_comb.save('Complete/' + name + '_vertical.jpg')
+        except OSError:
+            imgs_comb.save('Complete/' + name + '_vertical.png')
 
 
 def main(name):
     directory = 'Images/'
+    initSize = 0
 
     # Update images array
     getImages(directory)
 
     # Combine the images
     combineImages(name)
+
+    # Compare size of files separately vs combined size
+    #for i in images:
+    #    initSize += os.path.getsize(i)
+    #endSize = os.path.getsize('Complete/' + name + '.jpg') if 'h' in name else os.path.getsize('Complete/' + name + '_vertical.jpg')
+
+    #print('Init size: {} MB\nEnd size: {} MB\nDifference: {} MB'.format(round(convert_unit(initSize, SIZE_UNIT.MB), 3),
+    #                                                                    round(convert_unit(endSize, SIZE_UNIT.MB), 3),
+    #                                                    round(convert_unit(abs(endSize - initSize), SIZE_UNIT.MB), 3)))
 
 
 if __name__ == '__main__':
