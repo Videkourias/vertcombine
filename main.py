@@ -52,7 +52,7 @@ def combineImages1(name, method='v'):
     if 'h' in m:
         imgs_comb = np.hstack((np.asarray(i.resize(min_shape)) for i in imgs))
         imgs_comb = PIL.Image.fromarray(imgs_comb)
-        imgs_comb.save('Complete/' + name + '.jpg')
+        imgs_comb.save('Complete/' + name + '_horizontal.jpg')
 
     # Create image vertical
     if 'v' in m:
@@ -62,25 +62,49 @@ def combineImages1(name, method='v'):
 
 # Combine the images present in the images array using PIL methods
 # Creates one large image using the sum height and greatest width of all the component images
-def combineImages2(name):
+def combineImages2(name, method='v'):
     imgs = [PIL.Image.open(i) for i in images]
 
     # Determine max width and sum height of images
     widths, heights = zip(*(i.size for i in imgs))
-    max_width = max(widths)
-    total_height = sum(heights)
 
-    # Combined image
-    combine = Image.new('RGB', (max_width, total_height), (255, 255, 255))
+    m = method.lower()
 
-    # Paste old images onto new image
-    y_offset = 0
-    for i in imgs:
-        x_offset = (max_width - i.size[0])//2
-        combine.paste(i, (x_offset, y_offset))
-        y_offset += i.size[1]
+    # Create vertical image
+    if 'v' in m:
+        max_width = max(widths)
+        total_height = sum(heights)
 
-    combine.save('Complete/' + name + '_vertical.jpg')
+        # Combined image
+        combine = Image.new('RGB', (max_width, total_height), (255, 255, 255))
+
+        # Paste old images onto new image
+        y_offset = 0
+        for i in imgs:
+            # Centers images within vertical column
+            x_offset = (max_width - i.size[0])//2
+            combine.paste(i, (x_offset, y_offset))
+            y_offset += i.size[1]
+
+        combine.save('Complete/' + name + '_vertical.jpg')
+
+    # Create horizontal image
+    if 'h' in m:
+        total_width = sum(widths)
+        max_height = max(heights)
+
+        # Combined image
+        combine = Image.new('RGB', (total_width, max_height), (255, 255, 255))
+
+        # Paste old images onto new image
+        x_offset = 0
+        for i in imgs:
+            # Centers image within horizontal row
+            y_offset = (max_height - i.size[1])//2
+            combine.paste(i, (x_offset, y_offset))
+            x_offset += i.size[0]
+
+        combine.save('Complete/' + name + '_horizontal.jpg')
 
 def main(name):
     directory = 'Images/'
@@ -90,7 +114,8 @@ def main(name):
     getImages(directory)
 
     # Combine the images
-    combineImages2(name)
+    #combineImages1(name)
+    combineImages2(name + '_other', 'h')
 
     # Compare size of files separately vs combined size
     # for i in images:
