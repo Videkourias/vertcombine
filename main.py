@@ -116,18 +116,23 @@ def combineAppend(name, method='v'):
 
 # Combine the images present in the images array using PIL methods
 # Creates a grid of images that have a small border surrounding them
-# WIP, works best on images of identical size, ideal for large sets of images
+# Works best on images of identical size, ideal for large sets of images. Works to an extent for varying image sizes
 # Returns the name of the image created
-def combineGrid(name, cols=5):
+def combineGrid(name, cols=5, match=False):
     imgs = [PIL.Image.open(i) for i in images]
 
-    width, height = imgs[0].size
+    # Width, height of largest image, or first image
+    if match:
+        width = max(i.size[0] for i in imgs)
+        height = max(i.size[1] for i in imgs)
+    else:
+        width, height = imgs[0].size
 
     rows = math.ceil(len(imgs) / cols)
 
     # Determine buffer between columns and rows
-    colbuffer = width // 100
-    rowbuffer = height // 100
+    colbuffer = width // 50
+    rowbuffer = height // 50
 
     # Combined image
     combine = Image.new('RGB', ((cols * width) + ((cols-1) * colbuffer), (rows * height) + ((rows-1) * rowbuffer)))
@@ -135,18 +140,20 @@ def combineGrid(name, cols=5):
     # Paste old images onto new image
     y_offset = 0
     x_pos = 0
-    y_pos = 0
     for i in imgs:
         # Offsets X,Y coords
         # x offset should account for some number of spaces
         x_offset = x_pos * width + (x_pos * colbuffer)
 
-        combine.paste(i, (x_offset, y_offset))
+        # Centers image within space of largest image in img list
+        if match:
+            combine.paste(i, (x_offset + (width - i.size[0])//2, y_offset + (height - i.size[1])//2))
+        else:
+            combine.paste(i, (x_offset, y_offset))
 
         x_pos += 1
         if x_pos == cols:
-            y_pos += 1
-            y_offset += height + (y_pos * rowbuffer)
+            y_offset += height + rowbuffer
             x_pos = 0
 
     combine.save('Complete/' + name + '_grid.jpg')
@@ -167,12 +174,16 @@ def main(name):
 
     # Update images array
     getImages(directory)
+    if not images:
+        print('No images to combine found in Images/')
+        exit(1)
+
 
     # Combine the images
     completeNames = []
-    completeNames.append(combineSync(name))
-    completeNames.append(combineAppend(name))
-    completeNames.append(combineGrid(name))
+    #completeNames.append(combineSync(name))
+    #completeNames.append(combineAppend(name))
+    completeNames.append(combineGrid(name, match=True))
 
     # Only compare sizes if new images have been created
     if completeNames:
